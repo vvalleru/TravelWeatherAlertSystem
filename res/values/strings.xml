@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">TravelWeatherAlertSystem</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="fromLocation">From:</string>
+    <string name="toLocation">To:</string>
+    <string name="ok">OK</string>
+
+</resources>

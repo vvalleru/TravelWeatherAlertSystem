@@ -1,7 +1,7 @@
 TravelWeatherAlertSystem
 ========================
 
-Travel Weather Alert System is an android application which notifies the users about the weather and about adverse changes. This project uses the GoogleMapsAndroidAPIV2 and the Yahoo Weather API
+Travel Weather Alert System is an android application which notifies the drivers about the adverse weather conditions. This project uses the GoogleMapsAndroidAPIV2 and the Yahoo Weather APIs.
 
 Configuring the project
 =====================================

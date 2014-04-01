@@ -12,10 +12,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.http.client.methods.HttpGet;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -27,7 +23,10 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
@@ -41,6 +40,8 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
+import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -51,11 +52,13 @@ public class MainActivity extends Activity {
 
 	final int RQS_GooglePlayServices = 1;
 	private GoogleMap myMap;
-	double src_lat = 33.942500000000000000;
-	double src_long = -118.408055999999990000;
-	double dest_lat = 40.643772000000000000;
-	double dest_long = -73.781993000000000000;
+	double src_lat;
+	double src_long;
+	double dest_lat;
+	double dest_long;
 	MarkerOptions markerOptions;
+	SharedPreferences sharedPreferences;
+	int locationCount = 0;
 
 	@SuppressLint("NewApi")
 	@Override
@@ -63,28 +66,64 @@ public class MainActivity extends Activity {
 		Bundle b = getIntent().getExtras();
 		System.out.println("bundle" + b.toString());
 		String fromLocation = b.getString("from");
-		System.out.println("fromLocation: " +fromLocation);
+		System.out.println("fromLocation: " + fromLocation);
 		String toLocation = b.getString("to");
-		System.out.println("toLocation: " +toLocation);
-//		String fromLatLng = getLatLongFromAddress(fromLocation);
-//		String toLatLng = getLatLongFromAddress(toLocation);
-		//String[] tempArr = fromLatLng.split("/,/");
-		//src_lat = Double.parseDouble(tempArr[0]);
-		//src_long = Double.parseDouble(tempArr[1]);
-		//tempArr = toLatLng.split("/,/");
-		//dest_lat = Double.parseDouble(tempArr[0]);
-		//dest_long = Double.parseDouble(tempArr[1]);
-		
+		System.out.println("toLocation: " + toLocation);
+		Geocoder coder = new Geocoder(this);
+		try {
+			ArrayList<Address> frmAddresses = (ArrayList<Address>) coder
+					.getFromLocationName(fromLocation, 50);
+			ArrayList<Address> toAddresses = (ArrayList<Address>) coder
+					.getFromLocationName(toLocation, 50);
+			for (Address add : frmAddresses) {
+				src_long = add.getLongitude();
+				src_lat = add.getLatitude();
+			}
+			for (Address add : toAddresses) {
+				dest_long = add.getLongitude();
+				dest_lat = add.getLatitude();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
 		FragmentManager myFragmentManager = getFragmentManager();
 		MapFragment myMapFragment = (MapFragment) myFragmentManager
 				.findFragmentById(R.id.map);
+
 		myMap = myMapFragment.getMap();
 
 		LatLng srcLatLng = new LatLng(src_lat, src_long);
 		LatLng destLatLng = new LatLng(dest_lat, dest_long);
+
+		// Opening the sharedPreferences object
+		sharedPreferences = getSharedPreferences("location", 0);
+
+		// Getting number of locations already stored
+		locationCount = sharedPreferences.getInt("locationCount", 0);
+
+		// If locations are already saved
+		if (locationCount != 0) {
+
+			String lat = "";
+			String lng = "";
+
+			// Iterating through all the locations stored
+			for (int i = 0; i < locationCount; i++) {
+
+				// Getting the latitude of the i-th location
+				lat = sharedPreferences.getString("lat" + i, "0");
+
+				// Getting the longitude of the i-th location
+				lng = sharedPreferences.getString("lng" + i, "0");
+
+				// Drawing marker on the map
+				drawMarker(new LatLng(Double.parseDouble(lat),
+						Double.parseDouble(lng)));
+			}
+		}
 
 		myMap.addMarker(new MarkerOptions().position(srcLatLng).title(
 				"Source place"));
@@ -104,13 +143,67 @@ public class MainActivity extends Activity {
 		myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(srcLatLng, 6));
 		markerOptions = new MarkerOptions();
 
-		// Polyline line = myMap.addPolyline(new
-		// PolylineOptions().add(srcLatLng,
-		// destLatLng).width(5).color(Color.RED));
-
 		connectAsyncTask _connectAsyncTask = new connectAsyncTask();
 		_connectAsyncTask.execute();
 
+		myMap.setOnMapClickListener(new OnMapClickListener() {
+
+			@Override
+			public void onMapClick(LatLng point) {
+				locationCount++;
+
+				// Drawing marker on the map
+				drawMarker(point);
+
+				/** Opening the editor object to write data to sharedPreferences */
+				SharedPreferences.Editor editor = sharedPreferences.edit();
+
+				// Storing the latitude for the i-th location
+				editor.putString("lat" + Integer.toString((locationCount - 1)),
+						Double.toString(point.latitude));
+
+				// Storing the longitude for the i-th location
+				editor.putString("lng" + Integer.toString((locationCount - 1)),
+						Double.toString(point.longitude));
+
+				// Storing the count of locations or marker count
+				editor.putInt("locationCount", locationCount);
+
+				/** Storing the zoom level to the shared preferences */
+				editor.putString("zoom",
+						Float.toString(myMap.getCameraPosition().zoom));
+
+				/** Saving the values stored in the shared preferences */
+				editor.commit();
+
+				Toast.makeText(getBaseContext(), "Marker is added to the Map",
+						Toast.LENGTH_SHORT).show();
+
+			}
+		});
+		
+		myMap.setOnMapLongClickListener(new OnMapLongClickListener() {
+			@Override
+			public void onMapLongClick(LatLng point) {
+
+				// Removing the marker and circle from the Google Map
+				myMap.clear();
+
+				// Opening the editor object to delete data from
+				// sharedPreferences
+				SharedPreferences.Editor editor = sharedPreferences.edit();
+
+				// Clearing the editor
+				editor.clear();
+
+				// Committing the changes
+				editor.commit();
+
+				// Setting locationCount to zero
+				locationCount = 0;
+
+			}
+		});
 	}
 
 	@Override
@@ -302,46 +395,14 @@ public class MainActivity extends Activity {
 		return poly;
 	}
 
-	public static String getLatLongFromAddress(String youraddress) {
-		String lat = "";
-		String lng = "";
-		HttpGet httpget = new HttpGet("http://maps.google.com/maps/api/geocode/json?address="
-				+ youraddress + "&sensor=false");
-		System.out.println(httpget.getURI());
-//		HttpGet httpGet = new HttpGet(uri);
-//		HttpClient client = new DefaultHttpClient();
-//		HttpResponse response;
-		StringBuilder stringBuilder = new StringBuilder();
-//
-//		try {
-//			response = client.execute(httpGet);
-//			HttpEntity entity = response.getEntity();
-//			InputStream stream = entity.getContent();
-//			int b;
-//			while ((b = stream.read()) != -1) {
-//				stringBuilder.append((char) b);
-//			}
-//		} catch (ClientProtocolException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+	private void drawMarker(LatLng point) {
+		// Creating an instance of MarkerOptions
+		MarkerOptions markerOptions = new MarkerOptions();
 
-		JSONObject jsonObject = new JSONObject();
-		try {
-			jsonObject = new JSONObject(stringBuilder.toString());
+		// Setting latitude and longitude for the marker
+		markerOptions.position(point);
 
-			lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-					.getJSONObject("geometry").getJSONObject("location")
-					.getString("lng").toString();
-
-			lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-					.getJSONObject("geometry").getJSONObject("location")
-					.getString("lat").toString();
-
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		return lat + "," + lng;
+		// Adding marker on the Google Map
+		myMap.addMarker(markerOptions);
 	}
 }

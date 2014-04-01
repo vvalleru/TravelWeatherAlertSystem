@@ -10,8 +10,8 @@ import android.widget.EditText;
 public class StartActivity extends Activity implements
 		android.view.View.OnClickListener {
 	EditText et1, et2;
-	String from = "abc";
-	String to = "xyz";
+	String from = "";
+	String to = "";
 	Button b1;
 
 	@Override

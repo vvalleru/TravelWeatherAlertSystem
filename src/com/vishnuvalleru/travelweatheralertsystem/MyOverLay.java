@@ -52,16 +52,13 @@ public class MyOverLay extends Overlay
             paint.setAntiAlias(true); 
             Point point = new Point(); 
             projection.toPixels(gp1, point); 
-            // mode=1&#65306;start 
             if(mode==1) 
             { 
                 if(defaultColor==999) 
                     paint.setColor(Color.BLUE); 
                 else 
                     paint.setColor(defaultColor);                
-                // start point
             } 
-            // mode=2&#65306;path 
             else if(mode==2) 
             { 
                 if(defaultColor==999) 
@@ -75,11 +72,9 @@ public class MyOverLay extends Overlay
                 canvas.drawLine(point.x, point.y, point2.x,point2.y, paint); 
                 
             } 
-            /* mode=3&#65306;end */ 
             else if(mode==3) 
             { 
                 /* the last path */ 
-
                 if(defaultColor==999) 
                     paint.setColor(Color.GREEN); 
                 else 

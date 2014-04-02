@@ -64,11 +64,8 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		Bundle b = getIntent().getExtras();
-		System.out.println("bundle" + b.toString());
 		String fromLocation = b.getString("from");
-		System.out.println("fromLocation: " + fromLocation);
 		String toLocation = b.getString("to");
-		System.out.println("toLocation: " + toLocation);
 		Geocoder coder = new Geocoder(this);
 		try {
 			ArrayList<Address> frmAddresses = (ArrayList<Address>) coder
@@ -124,27 +121,6 @@ public class MainActivity extends Activity {
 						Double.parseDouble(lng)));
 			}
 		}
-
-		myMap.addMarker(new MarkerOptions().position(srcLatLng).title(
-				"Source place"));
-
-		myMap.animateCamera(CameraUpdateFactory.newLatLng(srcLatLng));
-
-		myMap.addMarker(new MarkerOptions().position(destLatLng).title(
-				"Destination place"));
-
-		// Enabling MyLocation in Google Map
-		myMap.setMyLocationEnabled(true);
-		myMap.getUiSettings().setZoomControlsEnabled(true);
-		myMap.getUiSettings().setCompassEnabled(true);
-		myMap.getUiSettings().setMyLocationButtonEnabled(true);
-		myMap.getUiSettings().setAllGesturesEnabled(true);
-		myMap.setTrafficEnabled(true);
-		myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(srcLatLng, 6));
-		markerOptions = new MarkerOptions();
-
-		connectAsyncTask _connectAsyncTask = new connectAsyncTask();
-		_connectAsyncTask.execute();
 
 		myMap.setOnMapClickListener(new OnMapClickListener() {
 
@@ -204,8 +180,29 @@ public class MainActivity extends Activity {
 
 			}
 		});
-	}
+		
+		myMap.addMarker(new MarkerOptions().position(srcLatLng).title(
+				"Source place"));
 
+		myMap.animateCamera(CameraUpdateFactory.newLatLng(srcLatLng));
+
+		myMap.addMarker(new MarkerOptions().position(destLatLng).title(
+				"Destination place"));
+
+		// Enabling MyLocation in Google Map
+		myMap.setMyLocationEnabled(true);
+		myMap.getUiSettings().setZoomControlsEnabled(true);
+		myMap.getUiSettings().setCompassEnabled(true);
+		myMap.getUiSettings().setMyLocationButtonEnabled(true);
+		myMap.getUiSettings().setAllGesturesEnabled(true);
+		myMap.setTrafficEnabled(true);
+		myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(srcLatLng, 6));
+		markerOptions = new MarkerOptions();
+
+		connectAsyncTask _connectAsyncTask = new connectAsyncTask();
+		_connectAsyncTask.execute();
+	}
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -231,7 +228,6 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onResume() {
-		// TODO Auto-generated method stub
 		super.onResume();
 
 		int resultCode = GooglePlayServicesUtil
@@ -253,7 +249,6 @@ public class MainActivity extends Activity {
 
 		@Override
 		protected void onPreExecute() {
-			// TODO Auto-generated method stub
 			super.onPreExecute();
 			progressDialog = new ProgressDialog(MainActivity.this);
 			progressDialog.setMessage("Fetching route, Please wait...");
@@ -263,14 +258,12 @@ public class MainActivity extends Activity {
 
 		@Override
 		protected Void doInBackground(Void... params) {
-			// TODO Auto-generated method stub
 			fetchData();
 			return null;
 		}
 
 		@Override
 		protected void onPostExecute(Void result) {
-			// TODO Auto-generated method stub
 			super.onPostExecute(result);
 			if (doc != null) {
 				NodeList _nodelist = doc.getElementsByTagName("status");
@@ -346,7 +339,6 @@ public class MainActivity extends Activity {
 		} catch (ParserConfigurationException e) {
 			e.printStackTrace();
 		} catch (SAXException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -359,7 +351,6 @@ public class MainActivity extends Activity {
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				// TODO Auto-generated method stub
 
 			}
 		});

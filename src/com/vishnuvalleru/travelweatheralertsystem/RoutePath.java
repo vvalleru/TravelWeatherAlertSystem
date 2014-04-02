@@ -88,7 +88,6 @@ public class RoutePath extends MapActivity {
     }
     @Override 
     protected boolean isRouteDisplayed() { 
-        // TODO Auto-generated method stub 
         return false; 
     } 
 
@@ -96,7 +95,6 @@ public class RoutePath extends MapActivity {
         private ProgressDialog progressDialog;
         @Override
         protected void onPreExecute() {
-            // TODO Auto-generated method stub
             super.onPreExecute();
             progressDialog = new ProgressDialog(_activity);
             progressDialog.setMessage("Fetching route, Please wait...");
@@ -105,13 +103,11 @@ public class RoutePath extends MapActivity {
         }
         @Override
         protected Void doInBackground(Void... params) {
-            // TODO Auto-generated method stub
             fetchData();
             return null;
         }
         @Override
         protected void onPostExecute(Void result) {
-            // TODO Auto-generated method stub
             super.onPostExecute(result);            
             if(doc!=null){
                 Overlay ol = new MyOverLay(_activity,srcGeoPoint,srcGeoPoint,1);
@@ -194,7 +190,6 @@ public class RoutePath extends MapActivity {
             e.printStackTrace(); 
         }
         catch (SAXException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -239,13 +234,9 @@ public class RoutePath extends MapActivity {
         alert.setPositiveButton("Ok",new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // TODO Auto-generated method stub
 
             }
         });
         alert.show();
     }
-//    private Drawable getDrawable(String fileName){
-//        return Drawable.createFromStream(_activity.getClass().getClassLoader().getResourceAsStream(fileName), "pin");
-//    }
 }

@@ -12,6 +12,9 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -29,6 +32,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.StrictMode;
 
 import android.app.FragmentManager;
 import android.util.Log;
@@ -56,10 +60,12 @@ public class MainActivity extends Activity {
 	double src_long;
 	double dest_lat;
 	double dest_long;
+	String src_wdesc = "";
+	String dest_wdesc = "";
 	MarkerOptions markerOptions;
 	SharedPreferences sharedPreferences;
 	int locationCount = 0;
-
+	
 	@SuppressLint("NewApi")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +73,8 @@ public class MainActivity extends Activity {
 		String fromLocation = b.getString("from");
 		String toLocation = b.getString("to");
 		Geocoder coder = new Geocoder(this);
+		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		StrictMode.setThreadPolicy(policy);
 		try {
 			ArrayList<Address> frmAddresses = (ArrayList<Address>) coder
 					.getFromLocationName(fromLocation, 50);
@@ -91,10 +99,33 @@ public class MainActivity extends Activity {
 				.findFragmentById(R.id.map);
 
 		myMap = myMapFragment.getMap();
-
 		LatLng srcLatLng = new LatLng(src_lat, src_long);
 		LatLng destLatLng = new LatLng(dest_lat, dest_long);
 
+		try {
+			JSONObject srcJsonResponse = JSONReader.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="+src_lat+"&lon="+src_long);
+			JSONObject destJsonResponse = JSONReader.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="+dest_lat+"&lon="+dest_long);
+
+			JSONArray srcArr = (JSONArray)srcJsonResponse.get("weather");
+			JSONArray destArr = (JSONArray)destJsonResponse.get("weather");
+			
+			JSONObject srcJsonWeather = (JSONObject)srcArr.get(0);			
+			JSONObject destJsonWeather = (JSONObject)destArr.get(0);
+			
+			src_wdesc = srcJsonWeather.get("description").toString();
+			dest_wdesc = destJsonWeather.get("description").toString();
+			
+			System.out.println(srcJsonWeather.toString());
+			System.out.println(destJsonWeather.toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	
 		// Opening the sharedPreferences object
 		sharedPreferences = getSharedPreferences("location", 0);
 
@@ -182,12 +213,12 @@ public class MainActivity extends Activity {
 		});
 		
 		myMap.addMarker(new MarkerOptions().position(srcLatLng).title(
-				"Source place"));
+				src_wdesc));
 
 		myMap.animateCamera(CameraUpdateFactory.newLatLng(srcLatLng));
 
 		myMap.addMarker(new MarkerOptions().position(destLatLng).title(
-				"Destination place"));
+				dest_wdesc));
 
 		// Enabling MyLocation in Google Map
 		myMap.setMyLocationEnabled(true);
@@ -202,7 +233,7 @@ public class MainActivity extends Activity {
 		connectAsyncTask _connectAsyncTask = new connectAsyncTask();
 		_connectAsyncTask.execute();
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.

@@ -115,7 +115,7 @@ public class MainActivity extends Activity {
 			src_wdesc = srcJsonWeather.get("description").toString();
 			dest_wdesc = destJsonWeather.get("description").toString();
 			
-			System.out.println(srcJsonWeather.toString());
+			System.out.println(srcJsonResponse.toString());
 			System.out.println(destJsonWeather.toString());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

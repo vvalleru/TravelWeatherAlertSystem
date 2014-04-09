@@ -60,8 +60,10 @@ public class MainActivity extends Activity {
 	double src_long;
 	double dest_lat;
 	double dest_long;
-	String src_wdesc = "";
-	String dest_wdesc = "";
+	String srcWDesc = "";
+	String destWDesc = "";
+	String srcWCty = "";
+	String destWCty = "";
 	MarkerOptions markerOptions;
 	SharedPreferences sharedPreferences;
 	int locationCount = 0;
@@ -112,11 +114,11 @@ public class MainActivity extends Activity {
 			JSONObject srcJsonWeather = (JSONObject)srcArr.get(0);			
 			JSONObject destJsonWeather = (JSONObject)destArr.get(0);
 			
-			src_wdesc = srcJsonWeather.get("description").toString();
-			dest_wdesc = destJsonWeather.get("description").toString();
+			srcWDesc = srcJsonWeather.get("description").toString();
+			destWDesc = destJsonWeather.get("description").toString();
+			srcWCty = srcJsonResponse.get("name").toString();
+			destWCty = destJsonResponse.get("name").toString();
 			
-			System.out.println(srcJsonResponse.toString());
-			System.out.println(destJsonWeather.toString());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -124,7 +126,6 @@ public class MainActivity extends Activity {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	
 		// Opening the sharedPreferences object
 		sharedPreferences = getSharedPreferences("location", 0);
@@ -157,6 +158,7 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onMapClick(LatLng point) {
+				System.out.println(point.toString());
 				locationCount++;
 
 				// Drawing marker on the map
@@ -213,12 +215,12 @@ public class MainActivity extends Activity {
 		});
 		
 		myMap.addMarker(new MarkerOptions().position(srcLatLng).title(
-				src_wdesc));
+				"City: "+srcWCty +"Weather Condition: "+srcWDesc)).showInfoWindow();
 
 		myMap.animateCamera(CameraUpdateFactory.newLatLng(srcLatLng));
 
 		myMap.addMarker(new MarkerOptions().position(destLatLng).title(
-				dest_wdesc));
+				"City: "+destWCty +"Weather Condition: "+destWDesc)).showInfoWindow();
 
 		// Enabling MyLocation in Google Map
 		myMap.setMyLocationEnabled(true);
@@ -420,11 +422,29 @@ public class MainActivity extends Activity {
 	private void drawMarker(LatLng point) {
 		// Creating an instance of MarkerOptions
 		MarkerOptions markerOptions = new MarkerOptions();
-
-		// Setting latitude and longitude for the marker
-		markerOptions.position(point);
+		String wDesc = "";
+		String wCty = "";
+		String latitude = String.valueOf(point.latitude);
+		String longitude = String.valueOf(point.latitude);
+		try {
+			JSONObject jsonResponse = JSONReader.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="+latitude+"&lon="+longitude);
+			JSONArray tempArr = (JSONArray)jsonResponse.get("weather");
+			
+			JSONObject jsonWeather = (JSONObject)tempArr.get(0);
+			
+			wDesc = jsonWeather.get("description").toString();
+			wCty = jsonResponse.get("name").toString();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		// Adding marker on the Google Map
-		myMap.addMarker(markerOptions);
+		myMap.addMarker(markerOptions.position(point).title(
+				"City: "+wCty +"Weather Condition: "+wDesc)).showInfoWindow();
 	}
 }

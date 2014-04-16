@@ -26,7 +26,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
@@ -35,7 +34,6 @@ import android.os.Bundle;
 import android.os.StrictMode;
 
 import android.app.FragmentManager;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -45,7 +43,6 @@ import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
-import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -65,9 +62,7 @@ public class MainActivity extends Activity {
 	String srcWCty = "";
 	String destWCty = "";
 	MarkerOptions markerOptions;
-	SharedPreferences sharedPreferences;
-	int locationCount = 0;
-	
+
 	@SuppressLint("NewApi")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +70,8 @@ public class MainActivity extends Activity {
 		String fromLocation = b.getString("from");
 		String toLocation = b.getString("to");
 		Geocoder coder = new Geocoder(this);
-		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
+				.permitAll().build();
 		StrictMode.setThreadPolicy(policy);
 		try {
 			ArrayList<Address> frmAddresses = (ArrayList<Address>) coder
@@ -93,6 +89,10 @@ public class MainActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		LatLng srcLatLng = new LatLng(src_lat, src_long);
+		LatLng destLatLng = new LatLng(dest_lat, dest_long);
+
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
@@ -101,126 +101,17 @@ public class MainActivity extends Activity {
 				.findFragmentById(R.id.map);
 
 		myMap = myMapFragment.getMap();
-		LatLng srcLatLng = new LatLng(src_lat, src_long);
-		LatLng destLatLng = new LatLng(dest_lat, dest_long);
-
-		try {
-			JSONObject srcJsonResponse = JSONReader.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="+src_lat+"&lon="+src_long);
-			JSONObject destJsonResponse = JSONReader.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="+dest_lat+"&lon="+dest_long);
-
-			JSONArray srcArr = (JSONArray)srcJsonResponse.get("weather");
-			JSONArray destArr = (JSONArray)destJsonResponse.get("weather");
-			
-			JSONObject srcJsonWeather = (JSONObject)srcArr.get(0);			
-			JSONObject destJsonWeather = (JSONObject)destArr.get(0);
-			
-			srcWDesc = srcJsonWeather.get("description").toString();
-			destWDesc = destJsonWeather.get("description").toString();
-			srcWCty = srcJsonResponse.get("name").toString();
-			destWCty = destJsonResponse.get("name").toString();
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	
-		// Opening the sharedPreferences object
-		sharedPreferences = getSharedPreferences("location", 0);
-
-		// Getting number of locations already stored
-		locationCount = sharedPreferences.getInt("locationCount", 0);
-
-		// If locations are already saved
-		if (locationCount != 0) {
-
-			String lat = "";
-			String lng = "";
-
-			// Iterating through all the locations stored
-			for (int i = 0; i < locationCount; i++) {
-
-				// Getting the latitude of the i-th location
-				lat = sharedPreferences.getString("lat" + i, "0");
-
-				// Getting the longitude of the i-th location
-				lng = sharedPreferences.getString("lng" + i, "0");
-
-				// Drawing marker on the map
-				drawMarker(new LatLng(Double.parseDouble(lat),
-						Double.parseDouble(lng)));
-			}
-		}
-
+		myMap.setInfoWindowAdapter(new PopupAdapter(getLayoutInflater()));
 		myMap.setOnMapClickListener(new OnMapClickListener() {
 
 			@Override
 			public void onMapClick(LatLng point) {
-				System.out.println(point.toString());
-				locationCount++;
 
 				// Drawing marker on the map
 				drawMarker(point);
 
-				/** Opening the editor object to write data to sharedPreferences */
-				SharedPreferences.Editor editor = sharedPreferences.edit();
-
-				// Storing the latitude for the i-th location
-				editor.putString("lat" + Integer.toString((locationCount - 1)),
-						Double.toString(point.latitude));
-
-				// Storing the longitude for the i-th location
-				editor.putString("lng" + Integer.toString((locationCount - 1)),
-						Double.toString(point.longitude));
-
-				// Storing the count of locations or marker count
-				editor.putInt("locationCount", locationCount);
-
-				/** Storing the zoom level to the shared preferences */
-				editor.putString("zoom",
-						Float.toString(myMap.getCameraPosition().zoom));
-
-				/** Saving the values stored in the shared preferences */
-				editor.commit();
-
-				Toast.makeText(getBaseContext(), "Marker is added to the Map",
-						Toast.LENGTH_SHORT).show();
-
 			}
 		});
-		
-		myMap.setOnMapLongClickListener(new OnMapLongClickListener() {
-			@Override
-			public void onMapLongClick(LatLng point) {
-
-				// Removing the marker and circle from the Google Map
-				myMap.clear();
-
-				// Opening the editor object to delete data from
-				// sharedPreferences
-				SharedPreferences.Editor editor = sharedPreferences.edit();
-
-				// Clearing the editor
-				editor.clear();
-
-				// Committing the changes
-				editor.commit();
-
-				// Setting locationCount to zero
-				locationCount = 0;
-
-			}
-		});
-		
-		myMap.addMarker(new MarkerOptions().position(srcLatLng).title(
-				"City: "+srcWCty +"Weather Condition: "+srcWDesc)).showInfoWindow();
-
-		myMap.animateCamera(CameraUpdateFactory.newLatLng(srcLatLng));
-
-		myMap.addMarker(new MarkerOptions().position(destLatLng).title(
-				"City: "+destWCty +"Weather Condition: "+destWDesc)).showInfoWindow();
 
 		// Enabling MyLocation in Google Map
 		myMap.setMyLocationEnabled(true);
@@ -229,8 +120,11 @@ public class MainActivity extends Activity {
 		myMap.getUiSettings().setMyLocationButtonEnabled(true);
 		myMap.getUiSettings().setAllGesturesEnabled(true);
 		myMap.setTrafficEnabled(true);
-		myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(srcLatLng, 6));
+		myMap.animateCamera(CameraUpdateFactory.newLatLngZoom(destLatLng, 6));
 		markerOptions = new MarkerOptions();
+
+		drawMarker(srcLatLng);
+		drawMarker(destLatLng);
 
 		connectAsyncTask _connectAsyncTask = new connectAsyncTask();
 		_connectAsyncTask.execute();
@@ -268,7 +162,7 @@ public class MainActivity extends Activity {
 
 		if (resultCode == ConnectionResult.SUCCESS) {
 			Toast.makeText(getApplicationContext(),
-					"isGooglePlayServicesAvailable SUCCESS", Toast.LENGTH_LONG)
+					"GooglePlayServicesAvailable SUCCESS", Toast.LENGTH_LONG)
 					.show();
 		} else {
 			GooglePlayServicesUtil.getErrorDialog(resultCode, this,
@@ -341,7 +235,9 @@ public class MainActivity extends Activity {
 	Document doc = null;
 
 	private void fetchData() {
+
 		StringBuilder urlString = new StringBuilder();
+
 		urlString
 				.append("http://maps.google.com/maps/api/directions/xml?origin=");
 		urlString.append(src_lat);
@@ -352,7 +248,7 @@ public class MainActivity extends Activity {
 		urlString.append(",");
 		urlString.append(dest_long);
 		urlString.append("&sensor=true&mode=driving");
-		Log.d("url", "::" + urlString.toString());
+
 		HttpURLConnection urlConnection = null;
 		URL url = null;
 		try {
@@ -424,17 +320,24 @@ public class MainActivity extends Activity {
 		MarkerOptions markerOptions = new MarkerOptions();
 		String wDesc = "";
 		String wCty = "";
-		String latitude = String.valueOf(point.latitude);
-		String longitude = String.valueOf(point.latitude);
+		String wTemp = "";
+		String wHumid = "";
 		try {
-			JSONObject jsonResponse = JSONReader.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="+latitude+"&lon="+longitude);
-			JSONArray tempArr = (JSONArray)jsonResponse.get("weather");
-			
-			JSONObject jsonWeather = (JSONObject)tempArr.get(0);
-			
+			JSONObject jsonResponse = JSONReader
+					.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="
+							+ String.valueOf(point.latitude)
+							+ "&lon="
+							+ String.valueOf(point.longitude));
+			System.out.println(jsonResponse.toString());
+			JSONArray tempArr = (JSONArray) jsonResponse.get("weather");
+			JSONObject tempJson = (JSONObject) jsonResponse.get("main");
+			wTemp = tempJson.getString("temp");
+			wHumid = tempJson.getString("humidity");
+			JSONObject jsonWeather = (JSONObject) tempArr.get(0);
+
 			wDesc = jsonWeather.get("description").toString();
 			wCty = jsonResponse.get("name").toString();
-			
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -444,7 +347,13 @@ public class MainActivity extends Activity {
 		}
 
 		// Adding marker on the Google Map
-		myMap.addMarker(markerOptions.position(point).title(
-				"City: "+wCty +"Weather Condition: "+wDesc)).showInfoWindow();
+		myMap.addMarker(
+				markerOptions
+						.position(point)
+						.title(wCty)
+						.snippet(
+								"Weather: " + wDesc + "\nTemperature: " + wTemp
+										+ "\nHumidity: " + wHumid))
+				.showInfoWindow();
 	}
 }

@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -106,10 +107,8 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onMapClick(LatLng point) {
-
 				// Drawing marker on the map
 				drawMarker(point);
-
 			}
 		});
 
@@ -197,6 +196,7 @@ public class MainActivity extends Activity {
 				Node node1 = _nodelist.item(0);
 				String _status1 = node1.getChildNodes().item(0).getNodeValue();
 				if (_status1.equalsIgnoreCase("OK")) {
+					String summary = "";
 					NodeList _nodelist_path = doc
 							.getElementsByTagName("overview_polyline");
 					Node node_path = _nodelist_path.item(0);
@@ -207,27 +207,31 @@ public class MainActivity extends Activity {
 					String _path = _nodelist_dest.getChildNodes().item(0)
 							.getNodeValue();
 					List<LatLng> directionPoint = decodePoly(_path);
-
 					PolylineOptions rectLine = new PolylineOptions().width(10)
 							.color(Color.RED);
 					for (int i = 0; i < directionPoint.size(); i++) {
 						rectLine.add(directionPoint.get(i));
+						if(i%25==0){
+							Vector<String> vect = getWeatherInfo(directionPoint.get(i));
+							summary += "\n\n\nCity: " +vect.get(3)+ "\nWeather: " + vect.get(2) + "\nTemperature: " + vect.get(0) + " F"
+									+ "\nHumidity: " + vect.get(1);
+						}
 					}
+					summary = summary.substring(3, summary.length());
 					// Adding route on the map
 					myMap.addPolyline(rectLine);
 					markerOptions.position(new LatLng(dest_lat, dest_long));
 					markerOptions.draggable(true);
 					myMap.addMarker(markerOptions);
+					showAlert("Weather Report!",summary);
 				} else {
-					showAlert("Unable to find the route");
+					showAlert("Error!","Unable to find the route");
 				}
 
 			} else {
-				showAlert("Unable to find the route");
+				showAlert("Error!","Unable to find the route");
 			}
-
 			progressDialog.dismiss();
-
 		}
 
 	}
@@ -272,9 +276,9 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	private void showAlert(String message) {
+	private void showAlert(String title, String message) {
 		AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
-		alert.setTitle("Error");
+		alert.setTitle(title);
 		alert.setCancelable(false);
 		alert.setMessage(message);
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
@@ -318,25 +322,37 @@ public class MainActivity extends Activity {
 	private void drawMarker(LatLng point) {
 		// Creating an instance of MarkerOptions
 		MarkerOptions markerOptions = new MarkerOptions();
-		String wDesc = "";
-		String wCty = "";
-		String wTemp = "";
-		String wHumid = "";
+		Vector<String> wVect = getWeatherInfo(point);
+
+		// Adding marker on the Google Map
+		myMap.addMarker(
+				markerOptions
+						.position(point)
+						.title(wVect.get(3))
+						.snippet(
+								"Weather: " + wVect.get(2) + "\nTemperature: " + wVect.get(0) + " F"
+										+ "\nHumidity: " + wVect.get(1)))
+				.showInfoWindow();
+	}
+	private Vector<String> getWeatherInfo(LatLng point){
+		Vector<String> vct = new Vector<String>();
 		try {
 			JSONObject jsonResponse = JSONReader
 					.readJsonFromUrl("http://api.openweathermap.org/data/2.5/weather?lat="
 							+ String.valueOf(point.latitude)
 							+ "&lon="
 							+ String.valueOf(point.longitude));
-			System.out.println(jsonResponse.toString());
 			JSONArray tempArr = (JSONArray) jsonResponse.get("weather");
 			JSONObject tempJson = (JSONObject) jsonResponse.get("main");
-			wTemp = tempJson.getString("temp");
-			wHumid = tempJson.getString("humidity");
+			String wTemp = tempJson.getString("temp");
+			int dTemp = (int) ((Double.valueOf(wTemp) - 273)*1.8 + 32);
+			vct.add(String.valueOf(dTemp));
+	        vct.add(tempJson.getString("humidity"));
 			JSONObject jsonWeather = (JSONObject) tempArr.get(0);
 
-			wDesc = jsonWeather.get("description").toString();
-			wCty = jsonResponse.get("name").toString();
+			vct.add(jsonWeather.get("description").toString());
+			vct.add(jsonResponse.get("name").toString());
+	        //adding elements to the end
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -345,15 +361,6 @@ public class MainActivity extends Activity {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-		// Adding marker on the Google Map
-		myMap.addMarker(
-				markerOptions
-						.position(point)
-						.title(wCty)
-						.snippet(
-								"Weather: " + wDesc + "\nTemperature: " + wTemp
-										+ "\nHumidity: " + wHumid))
-				.showInfoWindow();
+		return vct;
 	}
 }
